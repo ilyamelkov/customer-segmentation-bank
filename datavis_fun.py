@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import seaborn as sb
+import seaborn as sns
 
 # COLORS
 ## Discreet palette
@@ -25,6 +25,7 @@ LIGHT_ORANGE = "#f9da97"
 LIGHT_YELLOW = "#f9ed89"
 
 # FUNCTIONS
+
 
 def standardize_colnames(df):
     """
@@ -183,7 +184,7 @@ def bplots_custom(
 
         ax = plt.subplot(nrows, ncols, i[0] + 1)
         ax.set_facecolor(BG_WHITE)
-        sb.boxplot(
+        sns.boxplot(
             y=i[1], data=subdf, boxprops=boxprops, medianprops=medianprops, color=RED
         )
         ax.grid(linestyle=":", linewidth=2, axis="y")
@@ -380,7 +381,7 @@ from scipy.interpolate import make_interp_spline
 
 
 def parallel_coordinates_custom(
-    df, title_text: str = None, myfont: str = "Bahnschrift"
+    df, title_text: str = None, myfont: str = "Bahnschrift", alpha_val=0.01
 ):
     axes = df.columns
     cat_cord = {}
@@ -424,12 +425,18 @@ def parallel_coordinates_custom(
         else:
             # Ticks for numerical values
             col_min, col_max = df[axes[i]].min(), df[axes[i]].max()
-            num_tick_dict = set_num_ax_ticks(df[axes[i]].values, col_min, col_max)
 
-            ## Plot ticks from dict
-            for key in num_tick_dict:
-                ax.scatter(i + 1, num_tick_dict[key], s=150, zorder=10, c="#121212")
-                ax.text((i + 1) * 1.02, num_tick_dict[key], round(key), size=20)
+            if col_max == col_min:
+                ax.scatter(i + 1, 0.5, s=150, zorder=10, c="#121212")
+                ax.text((i + 1) * 1.02, 0.5, round(col_max), size=20)
+
+            else:
+                num_tick_dict = set_num_ax_ticks(df[axes[i]].values, col_min, col_max)
+
+                ## Plot ticks from dict
+                for key in num_tick_dict:
+                    ax.scatter(i + 1, num_tick_dict[key], s=150, zorder=10, c="#121212")
+                    ax.text((i + 1) * 1.02, num_tick_dict[key], round(key), size=20)
     # Adding values
     transp_df = df.transpose().reset_index()
     transp_df = transp_df.drop(columns=transp_df.columns[0])
@@ -447,19 +454,22 @@ def parallel_coordinates_custom(
                 yvals.append(cat_cord[df.columns[ent[0]]][ent[1]])
 
             else:
-                pass
-                sc_y = norm_val(
-                    ent[1],
-                    min(df.iloc[:, ent[0]].values),
-                    max(df.iloc[:, ent[0]].values),
-                )
+                if min(df.iloc[:, ent[0]].values) == max(df.iloc[:, ent[0]].values):
+                    sc_y = 0.5
+
+                else:
+                    sc_y = norm_val(
+                        ent[1],
+                        min(df.iloc[:, ent[0]].values),
+                        max(df.iloc[:, ent[0]].values),
+                    )
 
                 yvals.append(sc_y)
 
         X_Y_Spline = make_interp_spline(np.array(xvals), np.array(yvals))
         X_ = np.linspace(np.array(xvals).min(), np.array(xvals).max(), 500)
         Y_ = X_Y_Spline(X_)
-        ax.plot(X_, Y_, alpha=0.01, linewidth=10, c=BLUE)
+        ax.plot(X_, Y_, alpha=alpha_val, linewidth=10, c=BLUE)
 
         if title_text != None:
             fig.suptitle(title_text, fontfamily=myfont, size=50, fontweight="bold")
@@ -477,6 +487,7 @@ def mult_coord_plots(
     gentitle: str = None,
     linecolor: str = BLUE,
     myfont: str = "Bahnschrift",
+    alpha_val=0.01,
 ):
     cl_list = datasource[divcol].unique()
     fig = plt.figure(figsize=(60, 25))
@@ -544,10 +555,18 @@ def mult_coord_plots(
             else:
                 # Ticks for numerical values
                 col_min, col_max = df[axes[i]].min(), df[axes[i]].max()
-                num_tick_dict = set_num_ax_ticks(df[axes[i]].values, col_min, col_max)
-                for key in num_tick_dict:
-                    ax.scatter(i + 1, num_tick_dict[key], s=150, zorder=10, c="#121212")
-                    ax.text((i + 1) * 1.02, num_tick_dict[key], key, size=20)
+                if col_max == col_min:
+                    ax.scatter(i + 1, 0.5, s=150, zorder=10, c="#121212")
+                    ax.text((i + 1) * 1.02, 0.5, round(col_max), size=20)
+                else:
+                    num_tick_dict = set_num_ax_ticks(
+                        df[axes[i]].values, col_min, col_max
+                    )
+                    for key in num_tick_dict:
+                        ax.scatter(
+                            i + 1, num_tick_dict[key], s=150, zorder=10, c="#121212"
+                        )
+                        ax.text((i + 1) * 1.02, num_tick_dict[key], key, size=20)
         # Adding values
         transp_df = df.transpose().reset_index()
         transp_df = transp_df.drop(columns=transp_df.columns[0])
@@ -565,12 +584,15 @@ def mult_coord_plots(
                     yvals.append(cat_cord[df.columns[ent[0]]][ent[1]])
 
                 else:
-                    pass
-                    sc_y = norm_val(
-                        ent[1],
-                        min(df.iloc[:, ent[0]].values),
-                        max(df.iloc[:, ent[0]].values),
-                    )
+
+                    if min(df.iloc[:, ent[0]].values) == max(df.iloc[:, ent[0]].values):
+                        sc_y = 0.5
+                    else:
+                        sc_y = norm_val(
+                            ent[1],
+                            min(df.iloc[:, ent[0]].values),
+                            max(df.iloc[:, ent[0]].values),
+                        )
 
                     yvals.append(sc_y)
 
@@ -578,7 +600,7 @@ def mult_coord_plots(
 
             X_ = np.linspace(np.array(xvals).min(), np.array(xvals).max(), 500)
             Y_ = X_Y_Spline(X_)
-            ax.plot(X_, Y_, alpha=0.01, linewidth=10, c=linecolor)
+            ax.plot(X_, Y_, alpha=alpha_val, linewidth=10, c=linecolor)
             ax.set_title(
                 f"Parallel Coordinates Plot for {divcol} =  {cl[1]}",
                 fontsize=35,
@@ -611,6 +633,3 @@ def norm_val(val, minv, maxv) -> int:
     """
     res = (val - minv) / (maxv - minv)
     return res
-
-
-
